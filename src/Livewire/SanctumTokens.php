@@ -15,7 +15,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Joaopaulolndev\FilamentEditProfile\Concerns\HasUser;
-use Laravel\Sanctum\Sanctum;
+use Laravel\Passport\Passport;
 
 class SanctumTokens extends BaseProfileForm implements HasTable
 {
@@ -38,9 +38,8 @@ class SanctumTokens extends BaseProfileForm implements HasTable
         $auth = Filament::getCurrentPanel()->auth();
 
         return $table
-            ->query(app(Sanctum::$personalAccessTokenModel)->where([
-                ['tokenable_id', '=', $auth->id()],
-                ['tokenable_type', '=', get_class($auth->user())],
+            ->query(app(Passport::tokenModel())->where([
+                ['user_id', '=', $auth->id()],
             ]))
             ->columns([
                 Tables\Columns\TextColumn::make('name')
@@ -71,15 +70,12 @@ class SanctumTokens extends BaseProfileForm implements HasTable
                             ->options(filament('filament-edit-profile')->getSanctumPermissions())
                             ->columns(2)
                             ->required(),
-                        DatePicker::make('expires_at')
-                            ->label(__('filament-edit-profile::default.token_expires_at')),
                     ])
                     ->action(function ($data) {
                         $this->plainTextToken = $this->user->createToken(
                             $data['token_name'],
                             array_values($data['abilities']),
-                            $data['expires_at'] ? Carbon::createFromFormat('Y-m-d', $data['expires_at']) : null
-                        )->plainTextToken;
+                        )->accessToken;
 
                         $this->replaceMountedAction('showToken', [
                             'token' => $this->plainTextToken,
